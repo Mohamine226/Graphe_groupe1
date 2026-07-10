@@ -1,6 +1,6 @@
 """
 Génération du graphe de connaissances multi-relationnel
-Domaine : Bibliothèque — version "positions et tailles EXACTES"
+Domaine : Bibliothèque 
 --------------------------------------------------------------
 Contrairement aux tentatives précédentes (où les positions étaient
 estimées à l'œil), CETTE version utilise des coordonnées et des
@@ -20,6 +20,9 @@ garantit que la disposition finale colle au plus près de l'image.
 Dépendances :
     pip install matplotlib
 """
+
+import matplotlib
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -102,56 +105,59 @@ NODES = {
 # 4. ARÊTES "MÉTIER" (flèches bleues pleines + libellé bleu)
 # =================================================================
 ARETES_METIER = [
-    ("dr_arthur", "biblio_centrale",   "TRAVAILLE DANS"),
-    ("dr_arthur", "biblio_univ",       "TRAVAILLE DANS"),
+    ("dr_arthur", "biblio_centrale",   "TRAVAILLE DANS", -0.12),
+    ("dr_arthur", "biblio_univ",       "TRAVAILLE DANS", 0.12),
 
-    ("biblio_centrale", "zongo",       "INSCRIT"),
-    ("biblio_centrale", "gnambre",     "INSCRIT"),
+    ("biblio_centrale", "zongo",       "INSCRIT", -0.06),
+    ("biblio_centrale", "gnambre",     "INSCRIT", 0.10),
 
-    ("biblio_centrale", "ouaga",       "APPARTIENT À"),
-    ("biblio_univ", "bobo",            "EST SITUÉE À"),
-    ("biblio_univ", "koudougou",       "EST SITUÉE À"),
+    ("biblio_centrale", "ouaga",       "APPARTIENT À", 0.10),
+    ("biblio_univ", "bobo",            "EST SITUÉE À", -0.12),
+    ("biblio_univ", "koudougou",       "EST SITUÉE À", 0.18),
 
-    ("biblio_centrale", "rayon_b",     "POSSÈDE"),
-    ("biblio_univ", "rayon_a",         "POSSÈDE"),
+    ("biblio_centrale", "rayon_b",     "POSSÈDE", -0.05),
 
-    ("zongo", "parachutage",           "EMPRUNTE"),
-    ("gnambre", "sentiers",            "EMPRUNTE"),
+    ("zongo", "parachutage",           "EMPRUNTE", -0.10),
+    ("gnambre", "sentiers",            "EMPRUNTE", -0.10),
 
-    ("nazi_boni", "crepuscule",        "ÉCRIT"),
-    ("norbert_zongo", "parachutage",   "ÉCRIT"),
+    ("nazi_boni", "crepuscule",        "ÉCRIT", -0.08),
+    ("norbert_zongo", "parachutage",   "ÉCRIT", 0.18),
 
-    ("parachutage", "roman",           "APPARTIENT À"),
-    ("parachutage", "histoire",        "APPARTIENT À"),
-    ("sentiers", "editions_faso",      "EST PUBLIÉ PAR"),
-    ("sentiers", "presses",            "EST PUBLIÉ PAR"),
+    # --- CORRIGÉ : Le Parachutage va avec Roman/Les Éditions du Faso,
+    #     Les Sentiers d'Abraham va avec Histoire/Presses Univ. de Ouaga
+    #     (dans la v5, ces 4 arêtes étaient mal réparties : les deux
+    #     partaient de "parachutage" et les deux autres de "sentiers")
+    ("parachutage", "roman",           "APPARTIENT À", 0.12),
+    ("sentiers", "histoire",           "APPARTIENT À", 0.12),
+    ("parachutage", "editions_faso",   "EST PUBLIÉ PAR", -0.12),
+    ("sentiers", "presses",            "EST PUBLIÉ PAR", -0.12),
 
-    ("parachutage", "rayon_b",         "EST RANGÉ DANS"),
-    ("sentiers", "rayon_a",            "EST RANGÉ DANS"),
+    ("parachutage", "rayon_b",         "EST RANGÉ DANS", 0.08),
+    ("sentiers", "rayon_a",            "EST RANGÉ DANS", -0.08),
 ]
 
 # =================================================================
 # 5. ARÊTES D'ONTOLOGIE (flèches grises pointillées "EST DE TYPE")
 # =================================================================
 ARETES_TYPE = [
-    ("dr_arthur", "type_biblio_caire"),
-    ("zongo", "type_personne"),
-    ("zongo", "type_membre"),
-    ("gnambre", "type_personne"),
-    ("gnambre", "type_membre"),
-    ("norbert_zongo", "type_auteur"),
-    ("crepuscule", "type_auteur"),
-    ("ouaga", "type_ville"),
-    ("koudougou", "type_ville"),
-    ("bobo", "type_ville"),
-    ("biblio_centrale", "type_biblio"),
-    ("biblio_univ", "type_biblio"),
-    ("roman", "type_categorie"),
-    ("histoire", "type_categorie"),
-    ("editions_faso", "type_editeur"),
-    ("presses", "type_editeur"),
-    ("rayon_a", "type_rayon"),
-    ("rayon_b", "type_rayon"),
+    ("dr_arthur", "type_biblio_caire", 0.15),
+    ("zongo", "type_personne", -0.10),
+    ("zongo", "type_membre", 0.20),
+    ("gnambre", "type_personne", -0.10),
+    ("gnambre", "type_membre", 0.20),
+    ("norbert_zongo", "type_auteur", 0.15),
+    ("crepuscule", "type_auteur", -0.15),
+    ("ouaga", "type_ville", 0.15),
+    ("koudougou", "type_ville", -0.10),
+    ("bobo", "type_ville", 0.20),
+    ("biblio_centrale", "type_biblio", 0.10),
+    ("biblio_univ", "type_biblio", -0.15),
+    ("roman", "type_categorie", -0.15),
+    ("histoire", "type_categorie", 0.15),
+    ("editions_faso", "type_editeur", -0.15),
+    ("presses", "type_editeur", 0.15),
+    ("rayon_a", "type_rayon", -0.15),
+    ("rayon_b", "type_rayon", 0.15),
 ]
 
 # =================================================================
@@ -195,7 +201,19 @@ def dessiner_fleche(ax, cle_a, cle_b, label, couleur, style, rad=0.08):
     )
     ax.add_patch(fleche)
     if label:
-        mx, my = (xa + xb) / 2, (ya + yb) / 2
+        # Le VRAI milieu d'une courbe "arc3,rad=r" n'est pas le milieu
+        # du segment droit : on le calcule à partir de la formule de
+        # la courbe de Bézier quadratique utilisée par matplotlib pour
+        # ce connectionstyle. Cela permet aux libellés de deux arêtes
+        # courbées en sens opposé de ne plus se superposer.
+        mx_droit, my_droit = (xa + xb) / 2, (ya + yb) / 2
+        dx, dy = xb - xa, yb - ya
+        # vecteur perpendiculaire normalisé
+        norme = max((dx ** 2 + dy ** 2) ** 0.5, 1e-6)
+        perp_x, perp_y = -dy / norme, dx / norme
+        decalage = rad * norme * 0.5
+        mx = mx_droit + perp_x * decalage
+        my = my_droit + perp_y * decalage
         ax.text(
             mx, my, label,
             fontsize=8.5 if style == "metier" else 8,
@@ -217,12 +235,12 @@ ax.set_aspect("equal")
 ax.axis("off")
 fig.patch.set_facecolor("white")
 
-for source, cible, label in ARETES_METIER:
-    dessiner_fleche(ax, source, cible, label, COULEUR_FLECHE_METIER, style="metier")
+for source, cible, label, rad in ARETES_METIER:
+    dessiner_fleche(ax, source, cible, label, COULEUR_FLECHE_METIER, style="metier", rad=rad)
 
-for source, cible in ARETES_TYPE:
+for source, cible, rad in ARETES_TYPE:
     dessiner_fleche(ax, source, cible, "EST DE TYPE", COULEUR_FLECHE_TYPE,
-                     style="type", rad=0.15)
+                     style="type", rad=rad)
 
 for cle in NODES:
     dessiner_noeud(ax, cle)
@@ -284,12 +302,58 @@ ax.text(leg_x0 + 245, leg_y0 + leg_h - 148, "Relation de type\n(EST DE TYPE)",
 # =================================================================
 plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 plt.savefig("graphe_bibliotheque_final.png", dpi=DPI, facecolor="white")
+plt.close(fig)   # libère complètement les ressources matplotlib avant d'ouvrir Tkinter
 print("Graphe généré : graphe_bibliotheque_final.png")
 
-# Ouvre automatiquement l'image générée avec la visionneuse par défaut de
-# Windows (équivalent d'un double-clic sur le fichier). Sans ces lignes,
-# le script se contente d'ENREGISTRER le PNG sur le disque : matplotlib
-# ne montre une fenêtre que si on appelle plt.show(), ce qu'on ne fait
-# pas ici puisqu'on veut un fichier exporté, pas une fenêtre interactive.
-import os
-os.startfile("graphe_bibliotheque_final.png")
+# Affiche l'image générée dans une fenêtre TKINTER (et non la
+# visionneuse Windows par défaut). Sans ce bloc, le script se
+# contente d'ENREGISTRER le PNG sur le disque : matplotlib
+# n'affiche une fenêtre que si on appelle plt.show(), ce qu'on ne
+# fait pas ici puisqu'on veut d'abord exporter un fichier propre,
+# puis l'afficher nous-mêmes avec Tkinter (bibliothèque graphique
+# standard de Python, incluse par défaut).
+# --------------------------------------------------------------
+# Affichage dans une fenêtre TKINTER (au lieu d'ouvrir la
+# visionneuse Photos de Windows).
+#
+# NOTE IMPORTANTE : l'erreur "_tkinter.TclError: image "pyimageXX"
+# doesn't exist" que tu as rencontrée venait d'un conflit entre DEUX
+# interpréteurs Tk différents : celui créé en coulisses par le
+# backend "TkAgg" de matplotlib, et celui qu'on crée nous-mêmes
+# juste ici (fenetre = tk.Tk()). On a réglé ça de deux façons :
+#   1) matplotlib.use("Agg") tout en haut du fichier, pour empêcher
+#      matplotlib de créer le moindre interpréteur Tk caché ;
+#   2) master=fenetre passé explicitement à tk.PhotoImage, pour
+#      garantir que l'image est bien créée dans NOTRE interpréteur.
+# --------------------------------------------------------------
+import tkinter as tk
+from PIL import Image
+
+fenetre = tk.Tk()
+fenetre.title("Graphe de connaissances — Domaine Bibliothèque")
+
+# On redimensionne l'image AVANT affichage si elle est plus grande
+# que l'écran (avec Pillow, juste pour le redimensionnement), puis
+# on l'enregistre dans un fichier temporaire que Tkinter rechargera
+# lui-même avec son propre PhotoImage (donc plus d'objet Pillow
+# transmis directement à Tkinter -> plus de conflit possible).
+image_pil = Image.open("graphe_bibliotheque_final.png")
+
+ecran_w = fenetre.winfo_screenwidth()
+ecran_h = fenetre.winfo_screenheight()
+marge = 100
+chemin_affiche = "graphe_bibliotheque_final.png"
+if image_pil.width > ecran_w - marge or image_pil.height > ecran_h - marge:
+    ratio = min((ecran_w - marge) / image_pil.width, (ecran_h - marge) / image_pil.height)
+    nouvelle_taille = (int(image_pil.width * ratio), int(image_pil.height * ratio))
+    image_pil = image_pil.resize(nouvelle_taille, Image.LANCZOS)
+    chemin_affiche = "graphe_bibliotheque_final_redimensionne.png"
+    image_pil.save(chemin_affiche)
+
+photo = tk.PhotoImage(file=chemin_affiche, master=fenetre)
+
+label_image = tk.Label(fenetre, image=photo)
+label_image.image = photo   # garde une référence pour éviter le garbage collector
+label_image.pack()
+
+fenetre.mainloop()
